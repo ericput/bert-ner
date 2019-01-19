@@ -10,7 +10,7 @@ This is a named entity recognizer based on [pytorch-pretrained-bert](https://git
 - njuner
   - An Chinese NER package, more details in section [NJUNER](#NJUNER).
 - preprocess_msra.py
-  - A tool for preprocessing MSRA NER dataset.
+  - A tool for preprocessing the MSRA NER dataset.
 - run_ner.py
   - A tool for training and testing bert-ner model on different datasets.
   - Working with task_config.yaml.
@@ -37,7 +37,10 @@ pip install njuner
     ```bash
     njuner --model_dir model_path --input_file input.txt --output_dir ./
     ``` 
-    This will produce there files, which are 'tokens.txt', 'predictions.txt' and 'summary.txt', in the output directory.
+    This will produce there files, which are "tokens.txt", "predictions.txt" and "summary.txt", in the output directory.
+- Pretrained model
+  
+  You can get the model pretrained on the MSRA NER dataset from the [NJUNER releases page](https://github.com/ericput/bert-ner/releases). Uncompress the model archive and pass the directory to the parameter "model_dir".
 ### Performance
 ### Metrics: Span-based F1
 - Training and testing on the corresponding dataset.
@@ -46,7 +49,7 @@ pip install njuner
   |-|-|-|
   |SOTA|93.18|55.28|
   |NJUNER|94.78|66.95|
-  - The result of SOTA is according to the paper [Chinese NER Using Lattice LSTM](http://aclweb.org/anthology/P18-1144).
+  - Results of SOTA are according to the paper [Chinese NER Using Lattice LSTM](http://aclweb.org/anthology/P18-1144).
   - Our model fined tune on the BERT, which pretrained on large-scale unlabeled corpus, so the above results are not strictly comparable.
 
 - Comparison of different Chinese NER tools.
@@ -57,6 +60,6 @@ pip install njuner
   |[TLP](https://github.com/HIT-SCIR/pyltp)|73.34|43.97|
   |NJUNER|94.78|59.36|
 
-  - The default model of our tool is trained on MSRA NER dataset.
-  - The NER modules of HanLP and TLP are both trained on  People's Daily NER dataset. Their target entity types are same with our tool's, which are PER, LOC and ORG.
-  - There is another entity type 'GPE' in Weibo-NE dataset. For comparison purposes, we uniformly refer to GPE as LOC.
+  - The default model of our tool is trained on the MSRA NER dataset.
+  - The NER modules of HanLP and TLP are both trained on the People's Daily NER dataset. Their target entity types are same with our tool's, which are "PER", "LOC" and "ORG".
+  - There is another entity type "GPE" in Weibo-NE dataset. For comparison, we uniformly refer to "GPE" as "LOC".
