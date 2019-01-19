@@ -1,0 +1,37 @@
+task:
+  # The name of the task
+  task_name: conll
+  # The input data directory
+  data_dir: conll2003
+  # bert pre-trained model directory
+  bert_model_dir: en_model
+  # The output directory where the model predictions and checkpoints will be written
+  output_dir: /home/put/models/conll_pytorch
+  # Specify the ckeckpoint to load
+  checkpoint: ~
+  # Whether you are using an uncased model or not
+  lower_case: false
+  # The maximum total input sequence length after WordPiece tokenization
+  max_seq_length: 150
+train:
+  # Whether do training in this run
+  do: true
+  # Total batch size for training
+  batch_size: 25
+  # The initial learning rate for Adam
+  learning_rate: !!float 2e-5
+  # Total number of training epochs to perform
+  epochs: 5
+  # Proportion of training to perform linear learning rate warmup for
+  warmup_proportion: 0.1
+  # Number of updates steps to accumulate before performing a backward/update pass
+  gradient_accumulation_steps: 1
+  # Random seed for initialization
+  seed: 49
+predict:
+  # Whether do predicting in this run
+  do: true
+  # Total batch size for predicting
+  batch_size: 25
+# Whether to use CUDA when available
+use_cuda: true
