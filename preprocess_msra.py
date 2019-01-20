@@ -2,13 +2,12 @@ import re
 import codecs
 from pytorch_pretrained_bert.tokenization import BertTokenizer
 tokenizer = BertTokenizer.from_pretrained('ch_model', do_lower_case=True)
-label_type = ['O', 'NR', 'NS', 'NT']
-end = [';', '?', '!', '；', '。', '？', '！']
-max_length = 178
-path = 'msra'
 
 
-def prepare(dataset):
+def preprocess(path, dataset):
+    label_type = ['O', 'NR', 'NS', 'NT']
+    end = [';', '?', '!', '；', '。', '？', '！']
+    max_length = 178
     out_content = codecs.open('{}/{}_content.txt'.format(path, dataset), 'w', encoding='utf-8')
     out_label = codecs.open('{}/{}_label.txt'.format(path, dataset), 'w', encoding='utf-8')
     out_line_count = codecs.open('{}/{}_line_count.txt'.format(path, dataset), 'w', encoding='utf-8')
@@ -85,7 +84,3 @@ def prepare(dataset):
                 all_count += 1
         out_line_count.write(str(index) + ' ' + str(count) + '\n')
         index += 1
-
-
-prepare('train')
-prepare('testright')

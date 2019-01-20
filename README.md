@@ -11,6 +11,8 @@ This is a named entity recognizer based on [pytorch-pretrained-bert](https://git
   - An Chinese NER package, more details in section [NJUNER](#NJUNER).
 - preprocess_msra.py
   - A tool for preprocessing the MSRA NER dataset.
+- preprocess_pd98.py
+  - A tool for preprocessing the [People's Daily 1998.1 dataset](https://github.com/hankcs/OpenCorpus/tree/master/pku98).
 - run_ner.py
   - A tool for training and testing bert-ner model on different datasets.
   - Working with task_config.yaml.
@@ -56,10 +58,9 @@ pip install njuner
 
   |Item|MSRA|Weibo-NE|
   |-|-|-|
-  |[HanLP](https://github.com/hankcs/HanLP)|49.47|25.17
-  |[TLP](https://github.com/HIT-SCIR/pyltp)|73.34|43.97|
-  |NJUNER|94.78|59.36|
+  |[HanLP](https://github.com/hankcs/HanLP)|49.47|25.17|
+  |[LTP](https://github.com/HIT-SCIR/pyltp)|73.34|43.97|
+  |NJUNER|81.58|63.08|
 
-  - The default model of our tool is trained on the MSRA NER dataset.
-  - The NER modules of HanLP and TLP are both trained on the People's Daily NER dataset. Their target entity types are same with our tool's, which are "PER", "LOC" and "ORG".
+  - The NER modules of HanLP and LTP are both trained on the People's Daily 1998.1 dataset. For comparison, NJUNER is also trained on the same dataset and achieve the above results on MSRA and Weibo-NE respectively. Also, their target entity types are same with our tool's, which are "PER", "LOC" and "ORG".
   - There is another entity type "GPE" in Weibo-NE dataset. For comparison, we uniformly refer to "GPE" as "LOC".

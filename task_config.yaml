@@ -31,6 +31,8 @@ train:
 predict:
   # Whether do predicting in this run
   do: true
+  # Which dataset to be predicted: train, dev or test
+  dataset: test
   # Total batch size for predicting
   batch_size: 25
 # Whether to use CUDA when available
