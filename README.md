@@ -57,7 +57,7 @@ pip install njuner
   |Item|MSRA|Weibo-NE|
   |-|-|-|
   |[HanLP](https://github.com/hankcs/HanLP)|49.47|25.17
-  |[TLP](https://github.com/HIT-SCIR/pyltp)|73.34|43.97|
+  |[LTP](https://github.com/HIT-SCIR/pyltp)|73.34|43.97|
   |NJUNER|94.78|59.36|
 
   - The default model of our tool is trained on the MSRA NER dataset.
