@@ -61,5 +61,5 @@ pip install njuner
   |NJUNER|94.78|59.36|
 
   - The default model of our tool is trained on the MSRA NER dataset.
-  - The NER modules of HanLP and TLP are both trained on the People's Daily NER dataset. Their target entity types are same with our tool's, which are "PER", "LOC" and "ORG".
+  - The NER modules of HanLP and LTP are both trained on the People's Daily NER dataset. Their target entity types are same with our tool's, which are "PER", "LOC" and "ORG".
   - There is another entity type "GPE" in Weibo-NE dataset. For comparison, we uniformly refer to "GPE" as "LOC".
