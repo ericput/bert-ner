@@ -58,7 +58,7 @@ pip install njuner
 
   |Item|MSRA|Weibo-NE|
   |-|-|-|
-  |[HanLP](https://github.com/hankcs/HanLP)|49.47|25.17|
+  |[HanLP](https://github.com/hankcs/HanLP)|68.25|36.45|
   |[LTP](https://github.com/HIT-SCIR/pyltp)|73.34|43.97|
   |NJUNER|81.58|63.08|
 
