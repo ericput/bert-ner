@@ -3,7 +3,7 @@ This is a named entity recognizer based on [pytorch-pretrained-bert](https://git
 ## Requirements
 - python 3.5+
 - pytorch 0.4.1
-- pytorch-pretrained-bert 0.4.0
+- pytorch-pretrained-bert 0.6.1
 - tqdm
 - PyYAML
 ## Overview
@@ -47,10 +47,10 @@ pip install njuner
 ### Metrics: Span-based F1
 - Training and testing on the corresponding dataset.
   
-  |Item|MSRA|Weibo-NE|
-  |-|-|-|
-  |SOTA|93.18|55.28|
-  |NJUNER|94.78|66.95|
+  |Item|MSRA|Weibo-NE|Resume|
+  |-|-|-|-|
+  |SOTA|93.18|55.28|94.46|
+  |NJUNER|95.02|66.95|95.62|
   - Results of SOTA are according to the paper [Chinese NER Using Lattice LSTM](http://aclweb.org/anthology/P18-1144).
   - Our model fined tune on the BERT, which pretrained on large-scale unlabeled corpus, so the above results are not strictly comparable.
 

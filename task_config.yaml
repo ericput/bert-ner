@@ -1,18 +1,18 @@
 task:
   # The name of the task
-  task_name: conll
+  task_name: msra
   # The input data directory
-  data_dir: conll2003
+  data_dir: msra
   # bert pre-trained model directory
-  bert_model_dir: en_model
+  bert_model_dir: bert-pretrained/chinese_L-12_H-768_A-12
   # The output directory where the model predictions and checkpoints will be written
-  output_dir: /home/put/models/conll_pytorch
+  output_dir: /home/put/models/msra
   # Specify the ckeckpoint to load
   checkpoint: ~
   # Whether you are using an uncased model or not
-  lower_case: false
+  lower_case: true
   # The maximum total input sequence length after WordPiece tokenization
-  max_seq_length: 150
+  max_seq_length: 180
 train:
   # Whether do training in this run
   do: true
@@ -21,13 +21,13 @@ train:
   # The initial learning rate for Adam
   learning_rate: !!float 2e-5
   # Total number of training epochs to perform
-  epochs: 5
+  epochs: 7
   # Proportion of training to perform linear learning rate warmup for
   warmup_proportion: 0.1
   # Number of updates steps to accumulate before performing a backward/update pass
   gradient_accumulation_steps: 1
   # Random seed for initialization
-  seed: 49
+  seed: 33
 predict:
   # Whether do predicting in this run
   do: true

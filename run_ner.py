@@ -12,7 +12,7 @@ import torch
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
 
 from pytorch_pretrained_bert.tokenization import BertTokenizer
-from pytorch_pretrained_bert.modeling import PreTrainedBertModel, BertModel
+from pytorch_pretrained_bert.modeling import BertPreTrainedModel, BertModel
 from pytorch_pretrained_bert.optimization import BertAdam
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -21,7 +21,7 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message
 logger = logging.getLogger(__name__)
 
 
-class BertForNER(PreTrainedBertModel):
+class BertForNER(BertPreTrainedModel):
 
     def __init__(self, config, num_labels):
         super(BertForNER, self).__init__(config)
@@ -56,10 +56,10 @@ class InputExample(object):
 
 class InputFeatures(object):
 
-    def __init__(self, input_ids, input_mask, segment_ids, predict_mask, one_hot_labels):
+    def __init__(self, input_ids, segment_ids, input_mask, predict_mask, one_hot_labels):
         self.input_ids = input_ids
-        self.input_mask = input_mask
         self.segment_ids = segment_ids
+        self.input_mask = input_mask
         self.predict_mask = predict_mask
         self.one_hot_labels = one_hot_labels
 
@@ -113,8 +113,7 @@ class CONLLProcessor(DataProcessor):
 
     @staticmethod
     def get_labels():
-        label_type = ['O', 'B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-LOC', 'I-LOC', 'B-MISC', 'I-MISC', '[CLS]', '[SEP]',
-                      'Space']
+        label_type = ['O', 'B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-LOC', 'I-LOC', 'B-MISC', 'I-MISC']
         return label_type
 
 
@@ -133,7 +132,24 @@ class WeiboProcessor(DataProcessor):
     def get_labels():
         label_type = ['O', 'B-PER.NAM', 'I-PER.NAM', 'B-PER.NOM', 'I-PER.NOM', 'B-ORG.NAM', 'I-ORG.NAM',
                       'B-ORG.NOM', 'I-ORG.NOM', 'B-LOC.NAM', 'I-LOC.NAM', 'B-LOC.NOM', 'I-LOC.NOM', 'B-GPE.NAM',
-                      'I-GPE.NAM', 'B-GPE.NOM', 'I-GPE.NOM', '[CLS]', '[SEP]', 'Space']
+                      'I-GPE.NAM', 'B-GPE.NOM', 'I-GPE.NOM']
+        return label_type
+
+
+class ResumeProcessor(DataProcessor):
+    def get_train_examples(self, data_dir):
+        return DataProcessor.create_examples_from_conll_format_file(os.path.join(data_dir, 'train.txt'), 'train')
+
+    def get_dev_examples(self, data_dir):
+        return DataProcessor.create_examples_from_conll_format_file(os.path.join(data_dir, 'dev.txt'), 'dev')
+
+    def get_test_examples(self, data_dir):
+        return DataProcessor.create_examples_from_conll_format_file(os.path.join(data_dir, 'test.txt'), 'test')
+
+    @staticmethod
+    def get_labels():
+        label_type = ['O', 'B-CONT', 'I-CONT', 'B-EDU', 'I-EDU', 'B-LOC', 'I-LOC', 'B-NAME', 'I-NAME', 'B-ORG', 'I-ORG',
+                      'B-PRO', 'I-PRO', 'B-RACE', 'I-RACE', 'B-TITLE', 'I-TITLE']
         return label_type
 
 
@@ -162,7 +178,7 @@ class MSRAProcessor(DataProcessor):
 
     @staticmethod
     def get_labels():
-        label_type = ['O', 'B-NR', 'I-NR', 'B-NS', 'I-NS', 'B-NT', 'I-NT', '[CLS]', '[SEP]', 'Space']
+        label_type = ['O', 'B-NR', 'I-NR', 'B-NS', 'I-NS', 'B-NT', 'I-NT']
         return label_type
 
 
@@ -183,12 +199,12 @@ def convert_examples_to_features(examples, max_seq_length, tokenizer, label_prep
     label_map = {label: i for i, label in enumerate(label_list)}
     features = []
     tokenize_info = []
-    add_label = 'Space'
+    add_label = 'O'
     for (ex_index, example) in enumerate(examples):
         tokenize_count = []
         tokens = ['[CLS]']
         predict_mask = [0]
-        label_ids = [label_map['[CLS]']]
+        label_ids = [label_map[add_label]]
         for i, w in enumerate(example.words):
             sub_words = tokenizer.tokenize(w)
             if not sub_words:
@@ -216,7 +232,7 @@ def convert_examples_to_features(examples, max_seq_length, tokenizer, label_prep
             label_ids = label_ids[0:(max_seq_length - 1)]
         tokens.append('[SEP]')
         predict_mask.append(0)
-        label_ids.append(label_map['[SEP]'])
+        label_ids.append(label_map[add_label])
 
         input_ids = tokenizer.convert_tokens_to_ids(tokens)
         segment_ids = [0] * len(input_ids)
@@ -226,20 +242,20 @@ def convert_examples_to_features(examples, max_seq_length, tokenizer, label_prep
         padding_length = max_seq_length - len(input_ids)
         zero_padding = [0] * padding_length
         input_ids += zero_padding
-        input_mask += zero_padding
         segment_ids += zero_padding
+        input_mask += zero_padding
         predict_mask += zero_padding
-        label_ids += [label_map['Space']] * padding_length
+        label_ids += [label_map[add_label]] * padding_length
 
         assert len(input_ids) == max_seq_length
-        assert len(input_mask) == max_seq_length
         assert len(segment_ids) == max_seq_length
+        assert len(input_mask) == max_seq_length
         assert len(predict_mask) == max_seq_length
         assert len(label_ids) == max_seq_length
 
         one_hot_labels = np.eye(len(label_list), dtype=np.float32)[label_ids]
 
-        features.append(InputFeatures(input_ids=input_ids, input_mask=input_mask, segment_ids=segment_ids,
+        features.append(InputFeatures(input_ids=input_ids, segment_ids=segment_ids, input_mask=input_mask,
                                       predict_mask=predict_mask, one_hot_labels=one_hot_labels))
     return features, tokenize_info
 
@@ -267,10 +283,11 @@ def main(yaml_file):
     logger.info("device: {}".format(device))
 
     processors = {
-        "msra": MSRAProcessor,
+        "conll": CONLLProcessor,
         "weibo": WeiboProcessor,
-        "pd98": PD98Processor,
-        "conll": CONLLProcessor
+        "resume": ResumeProcessor,
+        "msra": MSRAProcessor,
+        "pd98": PD98Processor
     }
 
     task_name = config['task']['task_name'].lower()
@@ -345,11 +362,11 @@ def main(yaml_file):
         logger.info("  Batch size = %d", config['train']['batch_size'])
         logger.info("  Num steps = %d", num_train_steps)
         all_input_ids = torch.tensor([f.input_ids for f in train_features], dtype=torch.long)
-        all_input_mask = torch.tensor([f.input_mask for f in train_features], dtype=torch.long)
         all_segment_ids = torch.tensor([f.segment_ids for f in train_features], dtype=torch.long)
+        all_input_mask = torch.tensor([f.input_mask for f in train_features], dtype=torch.long)
         all_predict_mask = torch.ByteTensor([f.predict_mask for f in train_features])
         all_one_hot_labels = torch.tensor([f.one_hot_labels for f in train_features], dtype=torch.float)
-        train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_predict_mask, all_one_hot_labels)
+        train_data = TensorDataset(all_input_ids, all_segment_ids, all_input_mask, all_predict_mask, all_one_hot_labels)
         train_sampler = RandomSampler(train_data)
         train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=config['train']['batch_size'])
 
@@ -359,7 +376,7 @@ def main(yaml_file):
         for epoch in trange(start_epoch, config['train']['epochs'], desc="Epoch"):
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
                 batch = tuple(t.to(device) for t in batch)
-                input_ids, input_mask, segment_ids, predict_mask, one_hot_labels = batch
+                input_ids, segment_ids, input_mask, predict_mask, one_hot_labels = batch
 
                 loss = model(input_ids, segment_ids, input_mask, predict_mask, one_hot_labels)
 
@@ -369,10 +386,6 @@ def main(yaml_file):
                 loss.backward()
 
                 if (step + 1) % config['train']['gradient_accumulation_steps'] == 0:
-                    # modify learning rate with special warm up BERT uses
-                    lr_this_step = config['train']['learning_rate'] * warmup_linear(global_step/num_train_steps, config['train']['warmup_proportion'])
-                    for param_group in optimizer.param_groups:
-                        param_group['lr'] = lr_this_step
                     optimizer.step()
                     optimizer.zero_grad()
                     global_step += 1
@@ -401,9 +414,9 @@ def main(yaml_file):
         logger.info("  Num examples = %d", len(predict_examples))
         logger.info("  Batch size = %d", config['predict']['batch_size'])
         all_input_ids = torch.tensor([f.input_ids for f in predict_features], dtype=torch.long)
-        all_input_mask = torch.tensor([f.input_mask for f in predict_features], dtype=torch.long)
         all_segment_ids = torch.tensor([f.segment_ids for f in predict_features], dtype=torch.long)
-        predict_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids)
+        all_input_mask = torch.tensor([f.input_mask for f in predict_features], dtype=torch.long)
+        predict_data = TensorDataset(all_input_ids, all_segment_ids, all_input_mask)
         # Run prediction for full data
         predict_sampler = SequentialSampler(predict_data)
         predict_dataloader = DataLoader(predict_data, sampler=predict_sampler, batch_size=config['predict']['batch_size'])
@@ -411,7 +424,7 @@ def main(yaml_file):
         predictions = []
         for batch in predict_dataloader:
             batch = tuple(t.to(device) for t in batch)
-            input_ids, input_mask, segment_ids = batch
+            input_ids, segment_ids, input_mask = batch
             logits = model(input_ids, segment_ids, input_mask)
             logits = logits.detach().cpu().numpy()
             predictions.extend(np.argmax(logits, -1).tolist())
