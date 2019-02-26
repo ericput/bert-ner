@@ -48,9 +48,9 @@ class BertForNER(BertPreTrainedModel):
 
 class InputExample(object):
 
-    def __init__(self, guid, words, labels):
+    def __init__(self, guid, units, labels):
         self.guid = guid
-        self.words = words
+        self.units = units
         self.labels = labels
 
 
@@ -81,18 +81,30 @@ class DataProcessor(object):
     @staticmethod
     def create_examples_from_conll_format_file(data_file, set_type):
         examples = []
-        words = []
+        units = []
         labels = []
         for index, line in enumerate(codecs.open(data_file, encoding='utf-8')):
             if not line.strip():
                 guid = "%s-%d" % (set_type, index)
-                examples.append(InputExample(guid=guid, words=words, labels=labels))
-                words = []
+                examples.append(InputExample(guid=guid, units=units, labels=labels))
+                units = []
                 labels = []
             else:
                 segs = line.split()
-                words.append(segs[0])
+                units.append(segs[0])
                 labels.append(segs[-1])
+        return examples
+
+    @staticmethod
+    def create_examples(content_file, label_file, set_type):
+        examples = []
+        index = 0
+        for content_line, label_line in zip(codecs.open(content_file, encoding='utf-8'), codecs.open(label_file, encoding='utf-8')):
+            guid = "%s-%d" % (set_type, index)
+            units = content_line.split()
+            labels = label_line.split()
+            examples.append(InputExample(guid=guid, units=units, labels=labels))
+            index += 1
         return examples
 
     @staticmethod
@@ -155,26 +167,15 @@ class ResumeProcessor(DataProcessor):
 
 class MSRAProcessor(DataProcessor):
     def get_train_examples(self, data_dir):
-        return self._create_examples(data_dir, 'train_content.txt', 'train_label.txt', 'train')
+        return DataProcessor.create_examples(os.path.join(data_dir, 'train_content.txt'),
+                                             os.path.join(data_dir, 'train_label.txt'), 'train')
 
     def get_dev_examples(self, data_dir):
         return None
 
     def get_test_examples(self, data_dir):
-        return self._create_examples(data_dir, 'testright_content.txt', 'testright_label.txt', 'test')
-
-    @staticmethod
-    def _create_examples(data_dir, content_file, label_file, set_type):
-        examples = []
-        index = 0
-        for content_line, label_line in zip(codecs.open(os.path.join(data_dir, content_file), encoding='utf-8'),
-                                            codecs.open(os.path.join(data_dir, label_file), encoding='utf-8')):
-            guid = "%s-%d" % (set_type, index)
-            words = content_line.split()
-            labels = label_line.split()
-            examples.append(InputExample(guid=guid, words=words, labels=labels))
-            index += 1
-        return examples
+        return DataProcessor.create_examples(os.path.join(data_dir, 'testright_content.txt'),
+                                             os.path.join(data_dir, 'testright_label.txt'), 'test')
 
     @staticmethod
     def get_labels():
@@ -182,36 +183,54 @@ class MSRAProcessor(DataProcessor):
         return label_type
 
 
-class PD98Processor(MSRAProcessor):
+class PD98Processor(DataProcessor):
     def get_train_examples(self, data_dir):
-        return self._create_examples(data_dir, 'train_content.txt', 'train_label.txt', 'train')
+        return DataProcessor.create_examples(os.path.join(data_dir, 'train_content.txt'),
+                                             os.path.join(data_dir, 'train_label.txt'), 'train')
 
     def get_dev_examples(self, data_dir):
-        return self._create_examples(data_dir, 'dev_content.txt', 'dev_label.txt', 'train')
+        return DataProcessor.create_examples(os.path.join(data_dir, 'dev_content.txt'),
+                                             os.path.join(data_dir, 'dev_label.txt'), 'dev')
 
     def get_test_examples(self, data_dir):
         return None
 
+    @staticmethod
+    def get_labels():
+        label_type = ['O', 'B-NR', 'I-NR', 'B-NS', 'I-NS', 'B-NT', 'I-NT']
+        return label_type
 
-def convert_examples_to_features(examples, max_seq_length, tokenizer, label_preprocessed, label_list):
+
+processors = {
+        "conll": CONLLProcessor,
+        "weibo": WeiboProcessor,
+        "resume": ResumeProcessor,
+        "msra": MSRAProcessor,
+        "pd98": PD98Processor
+}
+
+
+def convert_examples_to_features(examples, max_seq_length, tokenizer, standard, label_list):
     """Loads a data file into a list of `InputBatch`s."""
 
     label_map = {label: i for i, label in enumerate(label_list)}
     features = []
-    tokenize_info = []
     add_label = 'O'
     for (ex_index, example) in enumerate(examples):
-        tokenize_count = []
         tokens = ['[CLS]']
         predict_mask = [0]
         label_ids = [label_map[add_label]]
-        for i, w in enumerate(example.words):
-            sub_words = tokenizer.tokenize(w)
-            if not sub_words:
-                sub_words = ['[UNK]']
-            tokenize_count.append(len(sub_words))
-            tokens.extend(sub_words)
-            if not label_preprocessed:
+        if standard:
+            tokens.extend(example.units)
+            predict_mask.extend([1] * len(example.labels))
+            label_ids.extend([label_map[label] for label in example.labels])
+            assert len(tokens) == len(label_ids), str(ex_index)
+        else:
+            for i, w in enumerate(example.units):
+                sub_words = tokenizer.tokenize(w)
+                if not sub_words:
+                    sub_words = ['[UNK]']
+                tokens.extend(sub_words)
                 for j in range(len(sub_words)):
                     if j == 0:
                         predict_mask.append(1)
@@ -219,12 +238,6 @@ def convert_examples_to_features(examples, max_seq_length, tokenizer, label_prep
                     else:
                         predict_mask.append(0)
                         label_ids.append(label_map[add_label])
-        if label_preprocessed:
-            predict_mask.extend([1] * len(example.labels))
-            label_ids.extend([label_map[label] for label in example.labels])
-            assert len(tokens) == len(label_ids), str(ex_index)
-        tokenize_info.append(tokenize_count)
-
         if len(tokens) > max_seq_length - 1:
             logging.debug('Example {} is too long: {}'.format(ex_index, len(tokens)))
             tokens = tokens[0:(max_seq_length - 1)]
@@ -257,7 +270,7 @@ def convert_examples_to_features(examples, max_seq_length, tokenizer, label_prep
 
         features.append(InputFeatures(input_ids=input_ids, segment_ids=segment_ids, input_mask=input_mask,
                                       predict_mask=predict_mask, one_hot_labels=one_hot_labels))
-    return features, tokenize_info
+    return features
 
 
 def warmup_linear(x, warmup=0.002):
@@ -282,22 +295,11 @@ def main(yaml_file):
         use_gpu = False
     logger.info("device: {}".format(device))
 
-    processors = {
-        "conll": CONLLProcessor,
-        "weibo": WeiboProcessor,
-        "resume": ResumeProcessor,
-        "msra": MSRAProcessor,
-        "pd98": PD98Processor
-    }
-
     task_name = config['task']['task_name'].lower()
 
     if task_name not in processors:
         raise ValueError("Task not found: %s" % task_name)
-    if task_name in ['msra', 'pd98']:
-        label_preprocessed = True
-    else:
-        label_preprocessed = False
+
     processor = processors[task_name]()
     label_list = processor.get_labels()
 
@@ -352,11 +354,8 @@ def main(yaml_file):
         ]
         optimizer = BertAdam(optimizer_grouped_parameters, lr=config['train']['learning_rate'], warmup=config['train']['warmup_proportion'], t_total=num_train_steps)
 
-        train_features, train_tokenize_info = convert_examples_to_features(train_examples, max_seq_length, tokenizer,
-                                                                           label_preprocessed, label_list)
-        with codecs.open(os.path.join(config['task']['output_dir'], "train.tokenize_info"), 'w', encoding='utf-8') as f:
-            for item in train_tokenize_info:
-                f.write(' '.join([str(num) for num in item])+'\n')
+        train_features = convert_examples_to_features(train_examples, max_seq_length, tokenizer, config['task']['standard'], label_list)
+
         logger.info("***** Running training *****")
         logger.info("  Num examples = %d", len(train_examples))
         logger.info("  Batch size = %d", config['train']['batch_size'])
@@ -393,7 +392,7 @@ def main(yaml_file):
             # Save a checkpoint
             model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
             torch.save({'epoch': epoch, 'model_state': model_to_save.state_dict(), 'max_seq_length': max_seq_length,
-                        'lower_case': lower_case},
+                        'lower_case': lower_case, 'label_list': label_list},
                        os.path.join(config['task']['output_dir'], 'checkpoint-%d' % epoch))
 
     if config['predict']['do']:
@@ -405,11 +404,9 @@ def main(yaml_file):
             predict_examples = processor.get_test_examples(config['task']['data_dir'])
         else:
             raise ValueError("The dataset %s cannot be predicted." % config['predict']['dataset'])
-        predict_features, predict_tokenize_info = convert_examples_to_features(predict_examples, max_seq_length,
-                                                                               tokenizer, label_preprocessed, label_list)
-        with codecs.open(os.path.join(config['task']['output_dir'], "test.tokenize_info"), 'w', encoding='utf-8') as f:
-            for item in predict_tokenize_info:
-                f.write(' '.join([str(num) for num in item])+'\n')
+
+        predict_features = convert_examples_to_features(predict_examples, max_seq_length, tokenizer, config['task']['standard'], label_list)
+
         logger.info("***** Running prediction *****")
         logger.info("  Num examples = %d", len(predict_examples))
         logger.info("  Batch size = %d", config['predict']['batch_size'])

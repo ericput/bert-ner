@@ -13,6 +13,8 @@ task:
   lower_case: true
   # The maximum total input sequence length after WordPiece tokenization
   max_seq_length: 180
+  # Whether the dataset is standard
+  standard: true
 train:
   # Whether do training in this run
   do: true
