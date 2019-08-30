@@ -54,7 +54,7 @@ class NJUNER:
             exit(1)
         checkpoint = torch.load(os.path.join(model_dir, 'checkpoint'), map_location='cpu')
         self._max_seq_length = checkpoint['max_seq_length']
-        self._label_list = ['O', 'B-PER', 'I-PER', 'B-LOC', 'I-LOC', 'B-ORG', 'I-ORG', '[CLS]', '[SEP]', 'Space']
+        self._label_list = checkpoint['label_list']
         logger.info("Loading the model")
         self._tokenizer = BertTokenizer.from_pretrained(model_dir, do_lower_case=checkpoint['lower_case'])
         self._model = BertForNER.from_pretrained(model_dir, state_dict=checkpoint['model_state'],

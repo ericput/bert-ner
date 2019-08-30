@@ -27,14 +27,13 @@ class BertForNER(BertPreTrainedModel):
         super(BertForNER, self).__init__(config)
         self.num_labels = num_labels
         self.bert = BertModel(config)
-        self.dropout = torch.nn.Dropout(0.2)
+        self.dropout = torch.nn.Dropout(0.4)
         self.hidden2label = torch.nn.Linear(config.hidden_size, num_labels)
         self.apply(self.init_bert_weights)
 
     def forward(self, input_ids, segment_ids, input_mask, predict_mask=None, one_hot_labels=None):
         bert_layer, _ = self.bert(input_ids, segment_ids, input_mask, output_all_encoded_layers=False)
-        if one_hot_labels is not None:
-            bert_layer = self.dropout(bert_layer)
+        bert_layer = self.dropout(bert_layer)
         logits = self.hidden2label(bert_layer)
 
         if one_hot_labels is not None:
@@ -271,12 +270,6 @@ def convert_examples_to_features(examples, max_seq_length, tokenizer, standard, 
         features.append(InputFeatures(input_ids=input_ids, segment_ids=segment_ids, input_mask=input_mask,
                                       predict_mask=predict_mask, one_hot_labels=one_hot_labels))
     return features
-
-
-def warmup_linear(x, warmup=0.002):
-    if x < warmup:
-        return x/warmup
-    return 1.0 - x
 
 
 def main(yaml_file):

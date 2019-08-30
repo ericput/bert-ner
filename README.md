@@ -8,7 +8,7 @@ This is a named entity recognizer based on [pytorch-pretrained-bert](https://git
 - PyYAML
 ## Overview
 - njuner
-  - An Chinese NER package, more details in section [NJUNER](#NJUNER).
+  - A NER package, more details in section [NJUNER](#NJUNER).
 - preprocess_msra.py
   - A tool for preprocessing the MSRA NER dataset.
 - preprocess_pd98.py
@@ -17,7 +17,7 @@ This is a named entity recognizer based on [pytorch-pretrained-bert](https://git
   - A tool for training and testing bert-ner model on different datasets.
   - Working with task_config.yaml.
 ## NJUNER
-An Chinese NERer which recognizes PERSONs, LOCATIONs and ORGANIZATIONs in texts. It is completely character-based and does not require word segmentation or part-of-speech information.
+A NER tool which recognizes predefined entities like PERSONs, LOCATIONs and ORGANIZATIONs in texts. It is completely end-2-end and does not require word segmentation or part-of-speech information.
 ### Installation
 ```bash
 pip install njuner
@@ -42,17 +42,17 @@ pip install njuner
     This will produce there files, which are "tokens.txt", "predictions.txt" and "summary.txt", in the output directory.
 - Pretrained model
   
-  You can get the model pretrained on the MSRA NER dataset from the [NJUNER releases page](https://github.com/ericput/bert-ner/releases). Uncompress the model archive and pass the directory to the parameter "model_dir".
+  You can get several pretrained models from the [NJUNER releases page](https://github.com/ericput/bert-ner/releases). Uncompress the model archive and pass the directory to the parameter "model_dir".
 ### Performance
 ### Metrics: Span-based F1
 - Training and testing on the corresponding dataset.
   
-  |Item|MSRA|Weibo-NE|Resume|
-  |-|-|-|-|
-  |SOTA|93.18|55.28|94.46|
-  |NJUNER|95.02|66.95|95.62|
-  - Results of SOTA are according to the paper [Chinese NER Using Lattice LSTM](http://aclweb.org/anthology/P18-1144).
-  - Our model fined tune on the BERT, which pretrained on large-scale unlabeled corpus, so the above results are not strictly comparable.
+  |Item|MSRA|Weibo-NE|Resume|CoNLL-2003|
+  |-|-|-|-|-|
+  |Baseline|93.18|55.28|94.46|92.4|
+  |NJUNER|95.02|66.95|95.62|91.7|
+  - Baselines of MSRA, Weibo-NE and Resume are reported in the paper [Chinese NER Using Lattice LSTM](http://aclweb.org/anthology/P18-1144), which are SOTA.
+  - The baseline of CoNLL-2003 is reported in the original paper [BERT](https://arxiv.org/pdf/1810.04805.pdf), which we find is hard to reproduce.
 
 - Comparison of different Chinese NER tools.
 

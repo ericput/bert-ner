@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='njuner',
-    version='0.1.6',
+    version='0.1.7',
     description=(
         'A NER tool from Nanjing University NLP Group.'
     ),
@@ -15,7 +15,7 @@ setup(
     license='MIT License',
     packages=find_packages(),
     platforms=["Linux"],
-    install_requires = ["torch>=0.4.1",['numpy']],
+    install_requires = ["torch>=0.4.1"],
     scripts=["bin/njuner"],
     python_requires='>=3.5.0'
 )
