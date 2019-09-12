@@ -22,25 +22,17 @@ class BertForNER(PreTrainedBertModel):
         self.hidden2label = torch.nn.Linear(config.hidden_size, num_labels)
         self.apply(self.init_bert_weights)
 
-    def forward(self, input_ids, segment_ids, input_mask, predict_mask=None, one_hot_labels=None):
-        bert_layer, _ = self.bert(input_ids, segment_ids, input_mask, output_all_encoded_layers=False)
+    def forward(self, input_ids, input_mask):
+        bert_layer, _ = self.bert(input_ids=input_ids, attention_mask=input_mask, output_all_encoded_layers=False)
         logits = self.hidden2label(bert_layer)
-
-        if one_hot_labels is not None:
-            p = torch.nn.functional.log_softmax(logits, -1)
-            losses = -torch.sum(one_hot_labels*p, -1)
-            losses = torch.masked_select(losses, predict_mask)
-            return torch.sum(losses)
-        else:
-            return logits
+        return logits
 
 
 class InputFeatures(object):
 
-    def __init__(self, input_ids, input_mask, segment_ids):
+    def __init__(self, input_ids, input_mask):
         self.input_ids = input_ids
         self.input_mask = input_mask
-        self.segment_ids = segment_ids
 
 
 class NJUNER:
@@ -55,7 +47,7 @@ class NJUNER:
         checkpoint = torch.load(os.path.join(model_dir, 'checkpoint'), map_location='cpu')
         self._max_seq_length = checkpoint['max_seq_length']
         self._label_list = checkpoint['label_list']
-        logger.info("Loading the model")
+        logger.info("Loading the model.")
         self._tokenizer = BertTokenizer.from_pretrained(model_dir, do_lower_case=checkpoint['lower_case'])
         self._model = BertForNER.from_pretrained(model_dir, state_dict=checkpoint['model_state'],
                                                  num_labels=len(self._label_list))
@@ -65,7 +57,8 @@ class NJUNER:
         else:
             self._device = torch.device("cpu")
         self._model.to(self._device)
-        logger.info("The model is ready")
+        self._model.eval()
+        logger.info("The model is ready.")
 
     def _split_paragraph(self, ori_lines):
         lines = []
@@ -95,29 +88,26 @@ class NJUNER:
                 tokens = tokens[0:(self._max_seq_length - 1)]
             tokens.append('[SEP]')
             input_ids = self._tokenizer.convert_tokens_to_ids(tokens)
-            segment_ids = [0] * len(input_ids)
             input_mask = [1] * len(input_ids)
             zero_padding = [0] * (self._max_seq_length - len(input_ids))
             input_ids += zero_padding
             input_mask += zero_padding
-            segment_ids += zero_padding
-            features.append(InputFeatures(input_ids=input_ids, input_mask=input_mask, segment_ids=segment_ids))
+            features.append(InputFeatures(input_ids=input_ids, input_mask=input_mask))
             tokens_list.append(tokens[1:-1])
         return features, tokens_list
 
     def _predict_features(self, features, tokens):
         all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
         all_input_mask = torch.tensor([f.input_mask for f in features], dtype=torch.long)
-        all_segment_ids = torch.tensor([f.segment_ids for f in features], dtype=torch.long)
-        predict_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids)
+        predict_data = TensorDataset(all_input_ids, all_input_mask)
         predict_sampler = SequentialSampler(predict_data)
         predict_dataloader = DataLoader(predict_data, sampler=predict_sampler, batch_size=self._batch_size)
         self._model.eval()
         predict_ids = []
         for batch in predict_dataloader:
             batch = tuple(t.to(self._device) for t in batch)
-            input_ids, input_mask, segment_ids = batch
-            logits = self._model(input_ids, segment_ids, input_mask)
+            input_ids, input_mask = batch
+            logits = self._model(input_ids, input_mask)
             logits = logits.detach().cpu().numpy()
             predict_ids.extend(np.argmax(logits, -1).tolist())
         predictions = []
@@ -162,13 +152,11 @@ class NJUNER:
                     line_tokens = line_tokens[0:(self._max_seq_length - 1)]
                 line_tokens.append('[SEP]')
                 input_ids = self._tokenizer.convert_tokens_to_ids(line_tokens)
-                segment_ids = [0] * len(input_ids)
                 input_mask = [1] * len(input_ids)
                 zero_padding = [0] * (self._max_seq_length - len(input_ids))
                 input_ids += zero_padding
                 input_mask += zero_padding
-                segment_ids += zero_padding
-                features.append(InputFeatures(input_ids=input_ids, input_mask=input_mask, segment_ids=segment_ids))
+                features.append(InputFeatures(input_ids=input_ids, input_mask=input_mask))
                 tokens.append(line_tokens[1:-1])
         predictions = self._predict_features(features, tokens)
         tokens_writer = codecs.open(os.path.join(output_dir, 'tokens.txt'), 'w', encoding='utf-8')
